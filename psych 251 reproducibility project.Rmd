@@ -408,6 +408,26 @@ dSS = subset(dfP4ss, B4VTASK1str == 'Stroop')
 length(dSS$M2ID) # 603
 ```
 
+#####################################
+#####################################
+#####################################
+#####################################
+#####################################
+#####################################
+#####################################
+#####################################
+#####################################
+#####################################
+###### Skip to this line as this often causes issues adding in and switchin to tidyversere here
+########
+#####################################
+#####################################
+#####################################
+#####################################
+#####################################
+#####################################
+#########
+#####################################
 
 ```{r}
 ##redo similarly because above call drops the stroop task try again
@@ -661,10 +681,59 @@ for ( mke in df$M2ID[df$SAMPLMAJ == '(13) MILWAUKEE'] ) {
 ```
 
 
+```{r}
+
+################################
+### Convert to long format  #### 
+################################
+## Long format 
+# Make a copy of the dataframe to convert to a data table 
+# because data tables link to all versions of table, which causes issues when trying to change column names in only one copy
+dt = df
+# All variables except stress[1-6], hr[1-6], ecgQ[1-6]
+names(dt)
+varsid = c(names(dt[1:37]), names(dt[56:57]))
+dfLTemp = melt.data.table(setDT(dt),
+                       id.vars = varsid, # ID variables - all the variables to keep but not split apart on
+                       measure = patterns("^stress", "^hr", "^ecgQ"),
+                       variable.name = "timepoint")
+OLD = c("value1", "value2", "value3")
+NEW = c("stress", "hr", "ecgQ")
+setnames(dfLTemp, old=OLD, new=NEW)
+```
+
+```{r}
+
+# Convert back to beloved data frame
+dfLTemp = data.frame(dfLTemp)
+names(dfLTemp)
+
+```
 
 
+```{r}
+#### Remove orthostatic stress timepoint from long format df ####
+dfLnoO = dfLTemp[dfLTemp$timepoint != 6,] 
+
+dfL = dfLnoO
+
+```
+
+##################################
+##################################
+##################################
+##################################
+##################################
+##################################skip here too 
+##################################
 ######have to do all of the above and then use this data frame to continue on as has all the pertinent variables
-
+##################################
+##################################
+##################################
+##################################
+##################################
+##################################
+##################################
 
 ```{r}
 
@@ -741,3 +810,95 @@ hist(dfP4ss2$coherence_as_r, main='Coherence', xlab='Coherence (stress x HR corr
 varDescribe(dfP4ss2$coherence_as_r5) # n = 944, mean = .5, sd = .46, median = .66, skew = -1.16, kurt = .46
 hist(dfP4ss2$coherence_as_r5, main='Coherence - complete data only', xlab='Coherence (stress x HR correlation)', col='#1F618D', cex.axis=1.7, cex.main=1.6)
 ```
+
+
+
+```{r}
+#### Create a 'Complete' variable: Find subjects with only all 5 timepoints of stress SRs and HR data ####
+completeSubjs = NA
+for ( s in unique(dfL$M2ID) ) {
+  #print(s)
+  # Subset and transpose subject's stress SRs and heart rate
+  SUBstress = dfL$stress[dfL$M2ID == s]
+  SUBhr = dfL$hr[dfL$M2ID == s]
+  # Put subjects stress and heart rate into their own dataframe
+  SUBdf = data.frame(SUBstress, SUBhr)
+  names(SUBdf)[1] = "stress"
+  names(SUBdf)[2] = "hr"
+  # Count number of NAs in stress self-reports
+  cS = count((is.na(SUBdf$stress)))
+  stressNotNA = as.numeric(cS[cS$x == 'FALSE',][2])
+  dfL$stressNotNA[dfL$M2ID == s] = stressNotNA
+  
+  # Count number of NAs in heart rate
+  cH = count((is.na(SUBdf$hr)))
+  hrNotNA = as.numeric(cH[cH$x == 'FALSE',][2])
+  dfL$hrNotNA[dfL$M2ID == s] = hrNotNA
+  
+  if ( (!is.na(hrNotNA)) & (!is.na(stressNotNA)) ) {
+    # Compute correlations only for subjects with all 5 timepoints 
+    if ( (hrNotNA == 5) & (stressNotNA == 5) ) {
+      print(s)
+      completeSubjs = c(completeSubjs, s)
+      dfL$complete[dfL$M2ID == s] = 1
+    }
+    if ( (hrNotNA != 5) & (stressNotNA != 5) ) {
+      dfL$complete[dfL$M2ID == s] = 0
+    }
+    
+  }
+  
+  rm(cS, cH, stressNotNA, hrNotNA) # clear variables before looping for next subject
+}
+```
+
+
+length(completeSubjs) # 968
+count(dfL, 'hrNotNA')
+count(dfL, 'stressNotNA')
+
+##################################
+#### Extract slopes from LMEM ####
+##################################
+# cluster mean-center stress
+dfL$stress_CMC = dfL$stress - ave(dfL$stress, dfL$M2ID, na.rm=T)
+lmerS = lmer(hr ~ stress_CMC + (1+ stress_CMC|M2ID), data=dfL)
+Anova(lmerS, type=3, test="F")
+modelSummary(lmerS)
+# The slopes -- actually eBLUPs
+slopes = coef(lmerS)$M2ID
+#names(slopes)
+#slopes
+dfSlope = data.frame(slopes)
+#names(dfSlope)
+#dfSlope$stress_CMC
+#rownames(dfSlope)
+
+dfSlope2 = data.frame(M2ID = row.names(dfSlope), dfSlope$stress_CMC)
+#dfSlope2
+names(dfSlope2)[names(dfSlope2) == 'dfSlope.stress_CMC'] = 'coherence_slope'
+# Merge slopes into long format dataframe
+dfL = merge.data.frame(dfL, dfSlope2, by='M2ID', all=TRUE)
+# Merge slopes into wide format dataframe
+df = merge.data.frame(df, dfSlope2, by='M2ID', all=TRUE)
+varDescribe(df$coherence_slope)
+
+################################
+#### Write out my data file #### 
+################################
+
+today='20181124'
+
+# Wide format
+fnameW = paste("coh_",today,".csv",sep='')
+fpathW = paste(ddir,"/",fnameW, sep='')
+write.csv(df, file=fpathW)
+fpathW = paste(myddir,"/",fnameW, sep='')
+write.csv(df, file=fpathW)
+
+# Long format
+fnameL = paste("cohLong_",today,".csv",sep='')
+fpathL = paste(ddir,"/",fnameL, sep='')
+write.csv(dfL, file=fpathL)
+fpathL = paste(myddir,"/",fnameL, sep='')
+write.csv(dfL, file=fpathL)
