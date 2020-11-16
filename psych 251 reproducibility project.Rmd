@@ -310,6 +310,7 @@ count(is.na(dfP4$hr6)) # 151
 ```
 
 ```{r personal version}
+
 dfP4 %>% count(is.na(hr1)) # confirm the above quality checks on the HR measure variable and data due to call issue
 dfP4 %>% count(is.na(hrM))
 dfP4 %>% count(is.na(hr3))
@@ -643,6 +644,7 @@ df = dfTemp
 #saveoutput data framework to easily retrieve upload and manipulate
 write.csv(df,"psych.251.repro.df.csv")
 
+#can upload this data frame above to begin from here
 
 ```
 
@@ -690,6 +692,7 @@ for ( mke in df$M2ID[df$SAMPLMAJ == '(13) MILWAUKEE'] ) {
 # Make a copy of the dataframe to convert to a data table 
 # because data tables link to all versions of table, which causes issues when trying to change column names in only one copy
 dt = df
+
 # All variables except stress[1-6], hr[1-6], ecgQ[1-6]
 names(dt)
 varsid = c(names(dt[1:37]), names(dt[56:57]))
@@ -734,6 +737,21 @@ dfL = dfLnoO
 ##################################
 ##################################
 ##################################
+```{r}
+
+#saveoutput data framework to easily retrieve upload and manipulate
+#can either  manipulate and work from the dt this was right before data made long at 687
+write.csv(dt,"psych.251.repro.dt.csv")
+```
+
+```{r}
+
+#saveoutput data framework to easily retrieve upload and manipulate
+#can either  manipulate and work from the dfP4ss2 data set (which was merged a little above) or from the df, which is the merged data frame and should still have the variables used in the chunks below. IF work on this data set, be sure to go through merge updates again, can also move that chunk following the bio data cleaning
+write.csv(dfP4ss2,"psych.251.repro.dfP4ss2.csv")
+
+
+```
 
 ```{r}
 
@@ -893,12 +911,10 @@ today='20181124'
 fnameW = paste("coh_",today,".csv",sep='')
 fpathW = paste(ddir,"/",fnameW, sep='')
 write.csv(df, file=fpathW)
-fpathW = paste(myddir,"/",fnameW, sep='')
-write.csv(df, file=fpathW)
+
 
 # Long format
 fnameL = paste("cohLong_",today,".csv",sep='')
 fpathL = paste(ddir,"/",fnameL, sep='')
 write.csv(dfL, file=fpathL)
-fpathL = paste(myddir,"/",fnameL, sep='')
-write.csv(dfL, file=fpathL)
+
