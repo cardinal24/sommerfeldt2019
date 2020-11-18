@@ -15,6 +15,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(readr)
 library(tidyverse)
 library(knitr)
+library(lme4)
 
 ```
 
@@ -44,7 +45,7 @@ df %>% count(stress1)
 
 
 
-```{r}
+```{r drop participants}
 #drop participants from dataset who do not have stress and hr data timepoints minus stress/hr 6
 #make stress and heart rate correlations
 
@@ -73,7 +74,7 @@ summarize(df.shr)
 ```
 
 
-```{r}
+```{r rename}
 
 #rename var to separate easier
  df.shr1 <- rename(df.shr, stress_1 = stress1)
@@ -90,7 +91,7 @@ df.shr9 <- rename(df.shr8, hr_4 = hr4)
 df.shr10 <- rename(df.shr9, hr_5 = hr5) 
 ```
 
-```{r}
+```{r pivot longer}
 wDF <- df.shr10
 
 #pivot longer, each participant has 5 rows per stress or hr
@@ -101,7 +102,7 @@ df.Ls <- pivot_longer(df.shr10, cols = starts_with("stress"), names_to = c("stre
 df.Lhr <- pivot_longer(df.shr10, cols = starts_with("hr"), names_to = c("hr", "timepoint"), names_sep = "_", values_to = "hr_value")
 ```
 
-```{r}
+```{r merge data sets and final}
 #merge two long frames by tp and m2id
 
 m.LDF <- merge(df.Ls, df.Lhr, 
@@ -110,11 +111,11 @@ m.LDF <- merge(df.Ls, df.Lhr,
                    all.x = TRUE, all.y = FALSE)
 
 #select key variables needed for long dataframe
-f.Ldf <- m.LDF %>% select(M2ID, timepoint, stress_value, hr_value, pwb2.x, COPE_denial.x, IL6.x, CRP.x, P4_CESD.x, P4_STAItrait.x, M2FAMNUM.x)
+f.Ldf <- m.LDF %>% select(M2ID, timepoint, stress_value, hr_value, pwb2.x, COPE_denial.x, IL6.x, CRP.x, P4_CESD.x, P4_STAItrait.x, M2FAMNUM.x, P4_age.x)
 
 #key variables for wide df
 
-f.Wdf <- wDF %>% select(M2ID, pwb2, COPE_denial, IL6, CRP, P4_CESD, P4_STAItrait, M2FAMNUM, stress_1, stress_2, stress_3, stress_4, stress_5, hr_1, hr_2, hr_3, hr_4, hr_5)
+f.Wdf <- wDF %>% select(M2ID, pwb2, COPE_denial, IL6, CRP, P4_CESD, P4_STAItrait, M2FAMNUM, stress_1, stress_2, stress_3, stress_4, stress_5, hr_1, hr_2, hr_3, hr_4, hr_5, P4_age)
 ```
 
 #See Prep_Coherence_MIDUSII.R for correlation computation. There, each subject’s set of heart rate and stress measures are subset to their #own data frame and a correlation is computed. The resulting within-subject (i.e., single-subject) r’s compose a new variable in the main #dataframe. ### Center correlations variable
@@ -122,192 +123,181 @@ f.Wdf <- wDF %>% select(M2ID, pwb2, COPE_denial, IL6, CRP, P4_CESD, P4_STAItrait
 
 
 ```{r make coherence variable}
-#cor between stress and hr within participant, unique for each participant coherence between variables -- dont think it is just at time ponits but an overall coeffecitne between stress andhr
+#cor between stress and hr within participant, unique for each participant coherence between variables -- dont think it is just at time points but an overall coefficient between stress and hr - return to this for supplemental time
 
 
 
 ```
 
-### Summary statistics and demographics
+
+##final wrangling and transforming
+### Cluster mean center talked about for each variable to enable better comparison
+#has to do with doing fixed effects models and havving effective predictor variables
+#centers mean at 0, changes associations of variables- confusing, should try all variables in models
+#especialy in multilevel models
+#problemmatic if done for DV because reduces error term messes up std errors - never center DV (HR)
+#helps get within and between effects equires different levels in model
+#changes interecpt of regression model not the coeffcients-estimate withineffect cange at individual level for individual outcomes
+
+```{r cluster_mean_center}
+f.Ldf$stress_CMC = f.Ldf$stress_value - ave(f.Ldf$stress_value, f.Ldf$M2ID, na.rm=T)
+f.Ldf$hr_CMC = f.Ldf$hr - ave(f.Ldf$hr, f.Ldf$M2ID, na.rm=T) #be aware if using thing can also CMC other predictors
+
+f.Ldf$pwb2_CMC = f.Ldf$pwb2.x - ave(f.Ldf$pwb2.x, f.Ldf$M2ID, na.rm=T)
+f.Ldf$P4_CESD_CMC = f.Ldf$P4_CESD.x - ave(f.Ldf$P4_CESD.x, f.Ldf$M2ID, na.rm=T)
+f.Ldf$COPE_d_CMC = f.Ldf$COPE_denial.x - ave(f.Ldf$COPE_denial.x, f.Ldf$M2ID, na.rm=T)
+f.Ldf$IL6_CMC = f.Ldf$IL6.x - ave(f.Ldf$IL6.x, f.Ldf$M2ID, na.rm=T)
+f.Ldf$CRP_CMC = f.Ldf$CRP.x - ave(f.Ldf$CRP.x, f.Ldf$M2ID, na.rm=T)
+f.Ldf$STAI_CMC = f.Ldf$P4_STAItrait.x - ave(f.Ldf$P4_STAItrait.x, f.Ldf$M2ID, na.rm=T)
+
+```
+
+
+### Mean Center variables only - paper uses MC variables not all CMC
+```{r mean_center - Long DF}
+#age was used as COV
+f.Ldf$P4_age_MC = f.Ldf$P4_age.x - mean(f.Ldf$P4_age.x, na.rm=T)
+
+# Self reports
+f.Ldf$pwb2_MC = f.Ldf$pwb2.x - mean(f.Ldf$pwb2.x, na.rm=T)
+f.Ldf$P4_CESD_MC = f.Ldf$P4_CESD.x - mean(f.Ldf$P4_CESD.x, na.rm=T)
+f.Ldf$P4_STAItrait_MC = f.Ldf$P4_STAItrait.x - mean(f.Ldf$P4_STAItrait.x, na.rm=T)
+f.Ldf$COPE_denial_MC = f.Ldf$COPE_denial.x - mean(f.Ldf$COPE_denial.x, na.rm=T)
+
+# Divide pwb, cesd, stai by 10 so SEs larger, more interpretable
+f.Ldf$pwb2_MC_d10 = f.Ldf$pwb2_MC/10.0
+f.Ldf$P4_CESD_MC_d10 = f.Ldf$P4_CESD_MC/10.0
+f.Ldf$P4_STAItrait_MC_d10 = f.Ldf$P4_STAItrait_MC/10.0
+
+# Inflammatory
+f.Ldf$IL6_MC = f.Ldf$IL6.x - mean(f.Ldf$IL6.x, na.rm=T)
+f.Ldf$CRP_MC = f.Ldf$CRP.x - mean(f.Ldf$CRP.x, na.rm=T)
+```
+
+```{r Mean Center Wide DF}
+# Wide data frame  f.WDF
+f.Wdf$P4_age_MC = f.Wdf$P4_age - mean(f.Wdf$P4_age, na.rm=T)
+# Self reports
+f.Wdf$pwb2_MC = f.Wdf$pwb2 - mean(f.Wdf$pwb2, na.rm=T)
+f.Wdf$P4_CESD_MC = f.Wdf$P4_CESD - mean(f.Wdf$P4_CESD, na.rm=T)
+f.Wdf$P4_STAItrait_MC = f.Wdf$P4_STAItrait - mean(f.Wdf$P4_STAItrait, na.rm=T)
+f.Wdf$COPE_denial_MC = f.Wdf$COPE_denial - mean(f.Wdf$COPE_denial, na.rm=T)
+# Inflammatory
+f.Wdf$IL6_MC = f.Wdf$IL6 - mean(f.Wdf$IL6, na.rm=T)
+f.Wdf$CRP_MC = f.Wdf$CRP - mean(f.Wdf$CRP, na.rm=T)
+
+```
+
+### Log transform inflammatory markers for normal distribution 
+```{r logtransform_IL6 and CRP}
+f.Ldf$IL6_T = log2(f.Ldf$IL6.x)
+f.Wdf$IL6_T = log2(f.Wdf$IL6)
+
+f.Ldf$CRP_T = log(f.Ldf$CRP.x, base=10)
+f.Wdf$CRP_T = log(f.Wdf$CRP, base=10)
+
+
+##mean center variable from transform
+f.Ldf$IL6_T_MC = f.Ldf$IL6_T - mean(f.Ldf$IL6_T, na.rm=T)
+f.Ldf$CRP_T_MC = f.Ldf$CRP_T - mean(f.Ldf$CRP_T, na.rm=T)
+```
 
 ```{r}
+#save final df before tests
+
+#saveoutput data framework to easily retrieve 
+write.csv(f.Ldf,"psych.251.repro.f.Ldf.analysis.csv")
+write.csv(f.Wdf,"psych.251.repro.w.Ldf.analysis.csv")
+
+```
+
+
+### Summary statistics and demographics
+
+```{r summary stats if want to do more}
 summary(wDF$P1_race)
 
 wDF$race = as.factor(wDF$P1_race)
 
 summary(wDF$race)
 summary(as.factor(wDF$P1_sex))
-```
 
 
-### Cluster mean center
-```{r cluster_mean_center}
-dfLs$stress_CMC = dfLs$stress - ave(dfLs$stress, dfLs$M2ID, na.rm=T)
-dfLs$hr_CMC = dfLs$hr - ave(dfLs$hr, dfLs$M2ID, na.rm=T)
-```
+hist(f.Ldf$stress_CMC)
+hist(f.Ldf$IL6_T)
+hist(f.Ldf$CRP_T)
 
-
-### Mean Center
-```{r mean_center}
-dfLs$P4_age_C = dfLs$P4_age - mean(dfLs$P4_age, na.rm=T)
-# Self reports
-dfLs$pwb2_C = dfLs$pwb2 - mean(dfLs$pwb2, na.rm=T)
-dfLs$P4_CESD_C = dfLs$P4_CESD- mean(dfLs$P4_CESD, na.rm=T)
-dfLs$P4_STAItrait_C = dfLs$P4_STAItrait - mean(dfLs$P4_STAItrait, na.rm=T)
-dfLs$COPE_denial_C = dfLs$COPE_denial - mean(dfLs$COPE_denial, na.rm=T)
-# Divide pwb, cesd, stai by 10 so SEs larger, interpretable
-dfLs$pwb2_C_d10 = dfLs$pwb2_C/10.000000
-dfLs$P4_CESD_C_d10 = dfLs$P4_CESD_C/10.000000
-dfLs$P4_STAItrait_C_d10 = dfLs$P4_STAItrait_C/10.000000
-
-# Inflammatory
-dfLs$IL6_C = dfLs$IL6 - mean(dfLs$IL6, na.rm=T)
-dfLs$CRP_C = dfLs$CRP - mean(dfLs$CRP, na.rm=T)
-```
-
-```{r}
-# Wide data frame
-dfLsW$P4_age_C = dfLsW$P4_age - mean(dfLsW$P4_age, na.rm=T)
-# Self reports
-dfLsW$pwb2_C = dfLsW$pwb2 - mean(dfLsW$pwb2, na.rm=T)
-dfLsW$P4_CESD_C = dfLsW$P4_CESD- mean(dfLsW$P4_CESD, na.rm=T)
-dfLsW$P4_STAItrait_C = dfLsW$P4_STAItrait - mean(dfLsW$P4_STAItrait, na.rm=T)
-dfLsW$COPE_denial_C = dfLsW$COPE_denial - mean(dfLsW$COPE_denial, na.rm=T)
-# Inflammatory
-dfLsW$IL6_C = dfLsW$IL6 - mean(dfLsW$IL6, na.rm=T)
-dfLsW$CRP_C = dfLsW$CRP - mean(dfLsW$CRP, na.rm=T)
-# PWB subscales
-dfLsW$autonomy2_C = dfLsW$autonomy2 - mean(dfLsW$autonomy2, na.rm=T)
-dfLsW$envMast2_C = dfLsW$envMast2 - mean(dfLsW$envMast2, na.rm=T)
-dfLsW$persGrow2_C = dfLsW$persGrow2 - mean(dfLsW$persGrow2, na.rm=T)
-dfLsW$posRela2_C = dfLsW$posRela2 - mean(dfLsW$posRela2, na.rm=T)
-dfLsW$purpLife2_C = dfLsW$purpLife2 - mean(dfLsW$purpLife2, na.rm=T)
-dfLsW$selfAcce2_C = dfLsW$selfAcce2 - mean(dfLsW$selfAcce2, na.rm=T)
-```
-
-### Log transform inflammatory markers for normal distribution 
-```{r logtransform_inflam}
-dfLs$IL6_T = log2(dfLs$IL6)
-dfLsW$IL6_T = log2(dfLsW$IL6)
-hist(dfLs$IL6_T)
-dfLs$CRP_T = log(dfLs$CRP, base=10)
-dfLsW$CRP_T = log(dfLsW$CRP, base=10)
-hist(dfLs$CRP_T)
-dfLs$IL6_T_C = dfLs$IL6_T - mean(dfLs$IL6_T, na.rm=T)
-dfLs$CRP_T_C = dfLs$CRP_T - mean(dfLs$CRP_T, na.rm=T)
 ```
 
 # TESTS
 
 ## Stress-heart rate coherence associations
 
-### Age
-```{r coherence_age}
-lmerM = lmer(hr ~ stress_CMC * P4_age_C + (1+ stress_CMC|M2ID) + (1|M2FAMNUM), data=dfLs)
-a = Anova(lmerM, type=3, test="F")
-a
-summary(lmerM)
-table_obj = broom.mixed::tidy(a, effects = c("ran_pars", "fixed"), data=dfLs) 
-pander(table_obj, digits = 3)   
-```
-
-### Gender 
-```{r coherence_gender}
-lmerM = lmer(hr ~ stress_CMC * gender_C + (1+ stress_CMC|M2ID) + (1|M2FAMNUM), data=dfLs)
-a = Anova(lmerM, type=3, test="F")
-a
-summary(lmerM)
-table_obj = broom.mixed::tidy(a, effects = c("ran_pars", "fixed"), data=dfLs) 
-pander(table_obj, digits = 3)   
-```
-
 ### PWB
 ```{r coherence_pwb}
-# Center age for subjects in this analysis 
-varDescribe(dfLs$pwb2_C)
-length(dfLs$P4_age[!is.na(dfLs$pwb2_C)])
-dfLs$P4_age_C = dfLs$P4_age - mean(dfLs$P4_age[!is.na(dfLs$pwb2_C)], na.rm=T)
+
 # Run the test 
-lmerM = lmer(hr ~ stress_CMC * pwb2_C_d10 + P4_age_C*stress_CMC + (1+ stress_CMC|M2ID) + (1|M2FAMNUM), data=dfLs)
-a = Anova(lmerM, type=3, test="F")
-a
-summary(lmerM)
-table_obj = broom.mixed::tidy(a, effects = c("ran_pars", "fixed"), data=dfLs) 
-pander(table_obj, digits = 3)   
+
+lmerM.pwb <- lmer(hr_value ~ stress_CMC * pwb2_MC_d10 + P4_age_MC*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM.x), data = f.Ldf)
+a.pwb <- anova(lmerM.pwb, type=3, test="F")
+a.pwb
+summary(lmerM.pwb)
+
+  
 ```
 
 ### Depression
 ```{r coherence_depression}
-# Center age for subjects in this analysis 
-varDescribe(dfLs$P4_CESD_C)
-length(dfLs$P4_age[!is.na(dfLs$P4_CESD_C)])
-dfLs$P4_age_C = dfLs$P4_age - mean(dfLs$P4_age[!is.na(dfLs$P4_CESD_C)], na.rm=T)
+
 # Run the test
 lmerM = lmer(hr ~ stress_CMC * P4_CESD_C_d10 + P4_age_C*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM), data=dfLs)
 a = Anova(lmerM, type=3, test="F")
 a
 summary(lmerM)
-table_obj = broom.mixed::tidy(a, effects = c("ran_pars", "fixed"), data=dfLs) 
-pander(table_obj, digits = 3)   
+   
 ```
 
 ### Anxiety
 ```{r coherence_anxiety}
-# Center age for subjects in this analysis 
-varDescribe(dfLs$P4_STAItrait_C)
-length(dfLs$P4_age[!is.na(dfLs$P4_STAItrait_C)])
-dfLs$P4_age_C = dfLs$P4_age - mean(dfLs$P4_age[!is.na(dfLs$P4_STAItrait_C)], na.rm=T)
 # Run the test
 lmerM = lmer(hr ~ stress_CMC * P4_STAItrait_C_d10 + P4_age_C*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM), data=dfLs)
 a = Anova(lmerM, type=3, test="F")
 a
 summary(lmerM)
-table_obj = broom.mixed::tidy(a, effects = c("ran_pars", "fixed"), data=dfLs) 
-pander(table_obj, digits = 3)   
+   
 ```
 
 ### IL6
 ```{r coherence_IL6}
-# Center age for subjects in this analysis 
-varDescribe(dfLs$IL6_T_C)
-length(dfLs$P4_age[!is.na(dfLs$IL6_T_C)])
-dfLs$P4_age_C = dfLs$P4_age - mean(dfLs$P4_age[!is.na(dfLs$IL6_T_C)], na.rm=T)
+
 # Run the test
 lmerM = lmer(hr ~ stress_CMC * IL6_T_C + P4_age_C*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM), data=dfLs)
 a = Anova(lmerM, type=3, test="F")
 a
 summary(lmerM)
-table_obj = broom.mixed::tidy(a, effects = c("ran_pars", "fixed"), data=dfLs) 
-pander(table_obj, digits = 3)   
+  
 ```
 
 ### CRP
 ```{r coherence_CRP}
-# Center age for subjects in this analysis 
-varDescribe(dfLs$CRP_T_C)
-length(dfLs$P4_age[!is.na(dfLs$CRP_T_C)])
-dfLs$P4_age_C = dfLs$P4_age - mean(dfLs$P4_age[!is.na(dfLs$CRP_T_C)], na.rm=T)
+
 # Run the test
 lmerM = lmer(hr ~ stress_CMC * CRP_T_C + P4_age_C*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM), data=dfLs)
 a = Anova(lmerM, type=3, test="F")
 a
 summary(lmerM)
-table_obj = broom.mixed::tidy(a, effects = c("ran_pars", "fixed"), data=dfLs) 
-pander(table_obj, digits = 3)   
+  
 ```
 
 ### Denial
 ```{r denial}
-# Center age for subjects in this analysis 
-length(dfLs$P4_age[!is.na(dfLs$COPE_denial_C)])
-dfLs$P4_age_C = dfLs$P4_age - mean(dfLs$P4_age[!is.na(dfLs$COPE_denial_C)], na.rm=T)
+
 # Run the test 
 lmerM = lmer(hr ~ stress_CMC * COPE_denial_C + P4_age_C*stress_CMC + (1+ stress_CMC|M2ID) + (1|M2FAMNUM), data=dfLs)
 a = Anova(lmerM, type=3, test="F")
 a
 summary(lmerM)
-table_obj = broom.mixed::tidy(a, effects = c("ran_pars", "fixed"), data=dfLs) 
-pander(table_obj, digits = 3)   # Using pander() to view the created table, with 3 sig figs 
+ 
 ```
 
 ## Multiple Comparisons Correction
@@ -321,7 +311,6 @@ p.adjust(p, method= 'holm')
 ```
 
 
-# PLOT
 
 ## FIGURE 1: Stress and heart rate by phase histograms
 
@@ -329,181 +318,26 @@ Facet-wrapped histograms of stress and heart rate at each phase of stress induct
 
 ```{r stress_by_phase_histograms, fig.width=8, fig.height=3, comment='#'}
 ylimits = c(0, 610)
-colcode = "#4ECDC1"
 stressHist=ggplot()+
-geom_histogram(data=dfL, aes(stress), fill=colcode, binwidth=1, color="black") +
+geom_histogram(data=f.Ldf, aes(stress_value), fill="green", binwidth=1, color="black") +
 facet_wrap(~timepoint, ncol=5) +
 labs(x="Self-reported stress", y="Number of subjects") +
 ylim(ylimits)+
 scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8,9,10) )+
-theme_bw(base_size=18)+
-theme(axis.text.x=element_text(size=14), 
-axis.text.y=element_text(size=14),
-panel.grid.minor=element_blank(), 
-panel.background=element_rect(fill="transparent"), 
-plot.background=element_rect(fill="transparent") )
+theme_bw(base_size=18)
 stressHist
-#ggsave(stressHist, filename=paste(adir,"/stressHist.png", sep=''), bg="transparent", height=2.8, width=10.45, units="in")
 ```
 
 ```{r hr_by_phase_histograms, fig.width=8, fig.height=3, comment='#'}
 xlimits = c(30,150)
 ylimits = c(0, 240)
-colcode = "#900C3F"
 hrHist=ggplot()+
-geom_histogram(data=dfL, aes(hr), fill=colcode, binwidth=6, color="black") +
+geom_histogram(data=f.Ldf, aes(hr_value), fill="red", binwidth=6, color="black") +
 facet_wrap(~timepoint, ncol=5) +
 labs(x="Heart rate", y="Number of subjects") +
 ylim(ylimits)+
 xlim(xlimits)+
 geom_vline(xintercept=75, size=.5, color="blue")+
-#scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8,9,10) )+
-theme_bw(base_size=18)+
-theme(axis.text.x=element_text(size=14), 
-axis.text.y=element_text(size=14),
-panel.grid.minor= element_blank(), 
-panel.background=element_rect(fill="transparent"), 
-plot.background=element_rect(fill="transparent") )
+theme_bw(base_size=18)
 hrHist
-#ggsave(hrHist, filename=paste(adir,"/hrHist.png", sep=''), bg="transparent", height=2.8, width=10.45, units="in")
-```
-
-## FIGURE 2: Interaction plots
-
-```{r interaction_plots}
-# PWB
-mod = lmer(hr ~ stress*pwb2 + (1 + stress| M2ID), data=dfLs)
-# Prepare independent variables for ggplot
-XToPredict = seq(min(dfLs$stress), max(dfLs$stress), length = 100)
-pwb2_lo = mean(dfLsW$pwb2, na.rm=T) - sd(dfLsW$pwb2, na.rm=T) 
-pwb2_hi = mean(dfLsW$pwb2, na.rm=T) + sd(dfLsW$pwb2, na.rm=T) 
-# Use modelPredictions() to generate Y-hats
-yHats = expand.grid(stress = XToPredict, pwb2=c(pwb2_lo, pwb2_hi))  # all IVs
-yHats = modelPredictions(mod, yHats)
-modelplot = ggplot() + 
-            geom_smooth(aes(ymin = CILo, ymax = CIHi, x = stress, y = Predicted, 
-                  colour=as.factor(pwb2), group=as.factor(pwb2)), 
-                  data = yHats, stat = "identity")
-#modelplot
-pwb2plot = modelplot + scale_x_continuous("Stress", breaks = seq(0, 10, by=1)) + 
-             scale_y_continuous("Heart Rate", breaks = seq(60, 100, by=1)) +
-             scale_color_manual(name ="PWB",             
-                     labels=c("Low (-1SD)", "High (+1SD)"), values=c("#0679A4","#FDA603")) + 
-             theme_bw(base_size = 14) +
-             theme(legend.position = c(0.75, 0.15), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                  panel.background = element_blank(), axis.line = element_line(colour = "black"))
-pwb2plot
-## CESD
-mod = lmer(hr ~ stress*P4_CESD + (1 + stress| M2ID), data=dfLs)
-# Prepare independent variables for ggplot
-XToPredict = seq(min(dfLs$stress), max(dfLs$stress), length = 100)
-P4_CESD_lo = mean(dfLsW$P4_CESD, na.rm=T) - sd(dfLsW$P4_CESD, na.rm=T) 
-P4_CESD_hi = mean(dfLsW$P4_CESD, na.rm=T) + sd(dfLsW$P4_CESD, na.rm=T) 
-# Use modelPredictions() to generate Y-hats
-yHats = expand.grid(stress = XToPredict, P4_CESD=c(P4_CESD_lo, P4_CESD_hi))  # all IVs
-yHats = modelPredictions(mod, yHats)
-modelplot = ggplot() + 
-  geom_smooth(aes(ymin = CILo, ymax = CIHi, x = stress, y = Predicted, 
-                  colour=as.factor(P4_CESD), group=as.factor(P4_CESD)), 
-                  data = yHats, stat = "identity")
-#modelplot
-P4_CESDplot = modelplot + scale_x_continuous("Stress", breaks = seq(0, 10, by=1)) + 
-             scale_y_continuous("Heart Rate", breaks = seq(60, 100, by=1)) +
-             scale_color_manual(name ="Depression",             
-                     labels=c("Low (-1SD)", "High (+1SD)"), values=c("#FDA603","#0679A4")) + 
-             theme_bw(base_size = 14) +
-             theme(legend.position = c(0.75, 0.15), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                   panel.background = element_blank(), axis.line = element_line(colour = "black"))
-P4_CESDplot
-## P4_STAItrait
-mod = lmer(hr ~ stress*P4_STAItrait +(1 + stress| M2ID), data=dfLs)
-# Prepare independent variables for ggplot
-XToPredict = seq(min(dfLs$stress), max(dfLs$stress), length = 100)
-P4_STAItrait_lo = mean(dfLsW$P4_STAItrait, na.rm=T) - sd(dfLsW$P4_STAItrait, na.rm=T) 
-P4_STAItrait_hi = mean(dfLsW$P4_STAItrait, na.rm=T) + sd(dfLsW$P4_STAItrait, na.rm=T) 
-# Use modelPredictions() to generate Y-hats
-yHats = expand.grid(stress = XToPredict, P4_STAItrait=c(P4_STAItrait_lo, P4_STAItrait_hi))  # all IVs
-yHats = modelPredictions(mod, yHats)
-modelplot = ggplot() + 
-  geom_smooth(aes(ymin = CILo, ymax = CIHi, x = stress, y = Predicted, 
-                  colour=as.factor(P4_STAItrait), group=as.factor(P4_STAItrait)), 
-                  data = yHats, stat = "identity")
-#modelplot
-P4_STAItraitplot = modelplot + scale_x_continuous("Stress", breaks = seq(0, 10, by=1)) + 
-                   scale_y_continuous("Heart Rate", breaks = seq(60, 100, by=1)) +
-                   scale_color_manual(name ="Trait Anxiety",             
-                     labels=c("Low (-1SD)", "High (+1SD)"), values=c("#FDA603","#0679A4")) + 
-                   theme_bw(base_size = 14) +
-                   theme(legend.position = c(0.75, 0.15), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                         panel.background = element_blank(), axis.line = element_line(colour = "black"))
-P4_STAItraitplot
-## IL6
-mod = lmer(hr ~ stress*IL6_T + (1 + stress| M2ID), data=dfLs)
-# Prepare independent variables for ggplot
-XToPredict = seq(min(dfLs$stress), max(dfLs$stress), length = 100)
-IL6_T_lo = mean(dfLsW$IL6_T, na.rm=T) - sd(dfLsW$IL6_T, na.rm=T) 
-IL6_T_hi = mean(dfLsW$IL6_T, na.rm=T) + sd(dfLsW$IL6_T, na.rm=T) 
-# Use modelPredictions() to generate Y-hats
-yHats = expand.grid(stress = XToPredict, IL6_T=c(IL6_T_lo, IL6_T_hi))  # all IVs
-yHats = modelPredictions(mod, yHats)
-# Starting plot in which we graph regression lines
-modelplot = ggplot() + 
-  geom_smooth(aes(ymin = CILo, ymax = CIHi, x = stress, y = Predicted, 
-                  colour=as.factor(IL6_T), group=as.factor(IL6_T), lineIL6_T=as.factor(IL6_T)), 
-                  data = yHats, stat = "identity")
-#modelplot
-IL6_Tplot = modelplot + scale_x_continuous("Stress", breaks = seq(0, 10, by=1)) + 
-             scale_y_continuous("Heart Rate", breaks = seq(60, 100, by=1)) +
-             scale_color_manual(name ="IL-6 (log2)",             
-                     labels=c("Low (-1SD)", "High (+1SD)"), values=c("#FDA603","#0679A4")) + 
-             theme_bw(base_size = 14) +
-             theme(legend.position = c(0.75, 0.15), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                         panel.background = element_blank(), axis.line = element_line(colour = "black"))
-                   
-IL6_Tplot
-## CRP
-mod = lmer(hr ~ stress*CRP_T + (1 + stress| M2ID), data=dfLs)
-# Prepare independent variables for ggplot
-XToPredict = seq(min(dfLs$stress), max(dfLs$stress), length = 100)
-CRP_T_lo = mean(dfLsW$CRP_T, na.rm=T) - sd(dfLsW$CRP_T, na.rm=T) 
-CRP_T_hi = mean(dfLsW$CRP_T, na.rm=T) + sd(dfLsW$CRP_T, na.rm=T) 
-# Use modelPredictions() to generate Y-hats
-yHats = expand.grid(stress = XToPredict, CRP_T=c(CRP_T_lo, CRP_T_hi))  # all IVs
-yHats = modelPredictions(mod, yHats)
-modelplot = ggplot() + 
-  geom_smooth(aes(ymin = CILo, ymax = CIHi, x = stress, y = Predicted, 
-                  colour=as.factor(CRP_T), group=as.factor(CRP_T), lineCRP_T=as.factor(CRP_T)), 
-              data = yHats, stat = "identity")
-#modelplot
-CRP_Tplot = modelplot + scale_x_continuous("Stress", breaks = seq(0, 10, by=1)) + 
-            scale_y_continuous("Heart Rate", breaks = seq(60, 100, by=1)) +
-            scale_color_manual(name ="CRP (log10)",             
-                     labels=c("Low (-1SD)", "High (+1SD)"), values=c("#FDA603","#0679A4")) + 
-            theme_bw(base_size = 14) +
-            theme(legend.position = c(0.75, 0.15), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                        panel.background = element_blank(), axis.line = element_line(colour = "black"))
-                  
-CRP_Tplot
-## Denial
-mod = lmer(hr ~ stress*COPE_denial + (1 + stress| M2ID), data=dfLs)
-# Prepare independent variables for ggplot
-XToPredict = seq(min(dfLs$stress), max(dfLs$stress), length = 100)
-COPE_denial_lo = mean(dfLsW$COPE_denial, na.rm=T) - sd(dfLsW$COPE_denial, na.rm=T) 
-COPE_denial_hi = mean(dfLsW$COPE_denial, na.rm=T) + sd(dfLsW$COPE_denial, na.rm=T) 
-# Use modelPredictions() to generate Y-hats
-yHats = expand.grid(stress = XToPredict, COPE_denial=c(COPE_denial_lo, COPE_denial_hi))  # all IVs
-yHats = modelPredictions(mod, yHats)
-modelplot = ggplot() + 
-  geom_smooth(aes(ymin = CILo, ymax = CIHi, x = stress, y = Predicted, 
-                  colour=as.factor(COPE_denial), group=as.factor(COPE_denial), lineCOPE_denial=as.factor(COPE_denial)), 
-                  data = yHats, stat = "identity")
-#modelplot
-COPE_denialplot = modelplot + scale_x_continuous("Stress", breaks = seq(0, 10, by=1)) + 
-             scale_y_continuous("Heart Rate", breaks = seq(60, 100, by=1)) +
-             scale_color_manual(name ="Denial coping",             
-                     labels=c("Low (-1SD)", "High (+1SD)"), values=c("#FDA603","#0679A4")) + 
-             theme_bw(base_size = 14) +
-             theme(legend.position = c(0.75, 0.15), panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                         panel.background = element_blank(), axis.line = element_line(colour = "black"))
-COPE_denialplot
 ```
