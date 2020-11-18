@@ -12,106 +12,133 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### Packages
 ```{r message=FALSE}
-library(data.table)
-library(plyr)
-library(stats)
-library(car)
-library(ggplot2)
-library(multilevel)
-library(lme4)
-library(lmSupport)
-library(AICcmodavg)
-library(pbkrtest)
-library(boot)
-library(rmarkdown)
-library(broom)
-library(pander)
-library(broom.mixed)
+library(readr)
+library(tidyverse)
+library(knitr)
+
 ```
 
 ### Read in processed data files 
 Files generated in Prep_Coherence_MIDUSII.R script
 
-```{r readin_processed, comment='#'}
-today='20181124'
-# Wide format
-fnameW = paste("coh_",today,".csv",sep='')
-fpathW = paste(ddir,"/",fnameW, sep='')
-# Long format
-fnameL = paste("cohLong_",today,".csv",sep='')
-fpathL = paste(ddir,"/",fnameL, sep='')
-# Read in processed data
-df = read.csv(fpathW)
-dfL = read.csv(fpathL)
+```{r read in data}
+
+setwd("~/R Mac working folder")
+
+#load cleaned and merged data so farfrom this step and work from here - should have all the proper variables and merged diff data sets by M2ID
+#should look wide and long data?
+
+psych_251_repro_df <- read_csv("R Mac working folder/sommerfeldt2019/psych.251.repro.df.csv")
+
+df <- psych_251_repro_df
+
 ```
 
-# PREP
-### Subset dataframe
+```{r}
+glimpse(df)
 
-A condensed/subsetted dataframe for analysis - excluding the many survey/P1 people without biomarker/P4/coherence data
 
-```{r subset_df, comment='#'}
-dfLs = dfL[!is.na(dfL$coherence_slope),]
-length(unique(dfLs$M2ID)) # 1065
-# Transform that subsetted version to wide format
-dfLsW = reshape(dfLs, idvar = "M2ID", v.names=c('hr', 'stress', 'stress_CMC', 'ecgQ'), drop=c('X', 'stressMC'), timevar = "timepoint", direction = "wide")
-names(dfLsW)
-length(dfLsW$M2ID)
+df %>% count(stress1)
+
+```
+
+
+
+```{r}
+#drop participants from dataset who do not have stress and hr data timepoints minus stress/hr 6
+#make stress and heart rate correlations
+
+#drop stress - in paper mentioned only without five complete data points for sr stress but should also befor hr
+df.s <- df %>% group_by(M2ID) %>% drop_na(stress1, stress2, stress3, stress4, stress5) %>% select(-stress6) 
+
+#drophr framework but will keep HR in as isnt explicitly mentioned also some data spots arent good due to instrument rill return
+df.shr <- df.s %>% group_by(M2ID) %>% drop_na(hr1, hr2, hr3, hr4, hr5) %>% select(-hr6)
+
+#looks like 967 observations less than intended
+summary(df.shr$IL6)
+
+summary(df.shr$stress1)
+summary(df.shr$stress2)
+sd(df.shr$stress1)
+sd(df.shr$stress2)
+
+
+summarize(df.shr)
+
+
+
+```
+```{r}
+ 
+```
+
+
+```{r}
+
+#rename var to separate easier
+ df.shr1 <- rename(df.shr, stress_1 = stress1)
+ 
+df.shr2 <- rename(df.shr1, stress_2 = stress2)
+df.shr3 <- rename(df.shr2, stress_3 = stress3)  
+df.shr4 <- rename(df.shr3, stress_4 = stress4)  
+df.shr5 <- rename(df.shr4, stress_5 = stress5)  
+
+df.shr6 <- rename(df.shr5, hr_1 = hr1) 
+df.shr7 <- rename(df.shr6, hr_2 = hr2) 
+df.shr8 <- rename(df.shr7, hr_3 = hr3) 
+df.shr9 <- rename(df.shr8, hr_4 = hr4) 
+df.shr10 <- rename(df.shr9, hr_5 = hr5) 
+```
+
+```{r}
+wDF <- df.shr10
+
+#pivot longer, each participant has 5 rows per stress or hr
+
+df.Ls <- pivot_longer(df.shr10, cols = starts_with("stress"), names_to = c("stress","timepoint"), names_sep = "_", values_to = "stress_value")  
+ 
+  
+df.Lhr <- pivot_longer(df.shr10, cols = starts_with("hr"), names_to = c("hr", "timepoint"), names_sep = "_", values_to = "hr_value")
+```
+
+```{r}
+#merge two long frames by tp and m2id
+
+m.LDF <- merge(df.Ls, df.Lhr, 
+                   by.x = c("M2ID", "timepoint"), 
+                   by.y = c("M2ID", "timepoint"), 
+                   all.x = TRUE, all.y = FALSE)
+
+#select key variables needed for long dataframe
+f.Ldf <- m.LDF %>% select(M2ID, timepoint, stress_value, hr_value, pwb2.x, COPE_denial.x, IL6.x, CRP.x, P4_CESD.x, P4_STAItrait.x, M2FAMNUM.x)
+
+#key variables for wide df
+
+f.Wdf <- wDF %>% select(M2ID, pwb2, COPE_denial, IL6, CRP, P4_CESD, P4_STAItrait, M2FAMNUM, stress_1, stress_2, stress_3, stress_4, stress_5, hr_1, hr_2, hr_3, hr_4, hr_5)
+```
+
+#See Prep_Coherence_MIDUSII.R for correlation computation. There, each subject’s set of heart rate and stress measures are subset to their #own data frame and a correlation is computed. The resulting within-subject (i.e., single-subject) r’s compose a new variable in the main #dataframe. ### Center correlations variable
+
+
+
+```{r make coherence variable}
+#cor between stress and hr within participant, unique for each participant coherence between variables -- dont think it is just at time ponits but an overall coeffecitne between stress andhr
+
+
+
 ```
 
 ### Summary statistics and demographics
 
-```{r summary_stats, comment='#'}
-summary(dfLsW$gender) 
-varDescribe(dfLsW$months_P1SAQ_to_P4) 
-varDescribe(dfLsW$P4_age) 
-varDescribe(dfLsW$P1_PIage) 
-varDescribe(dfLsW$months_P1SAQ_to_P4) 
-varDescribe(dfLsW$months_P1PI_to_P4)
-varDescribe(dfLsW$months_P1cog_to_P4) 
-varDescribe(dfLsW$pwb2)
-varDescribe(dfLsW$P4_CESD)
-varDescribe(dfLsW$P4_STAItrait)
-varDescribe(dfLsW$IL6) 
-varDescribe(dfLsW$CRP) 
-varDescribe(dfLsW$COPE_denial)
-summary(dfLsW$P1_race) # Asian = 3, black = 193, Native american or alaska native aleutian islander/eskimo = 14, other = 27, white = 825, DK = 1, REFUSED =1, NA=1
-summary(dfLsW$SAMPLMAJ) 
+```{r}
+summary(wDF$P1_race)
+
+wDF$race = as.factor(wDF$P1_race)
+
+summary(wDF$race)
+summary(as.factor(wDF$P1_sex))
 ```
 
-### Siblings
-```{r sortout_siblings, include=FALSE}
-# Twins
-# Create a data frame with a list of family IDs and the number of times they occurred.
-n_occur = data.frame(table(dfLsW$M2FAMNUM))
-#n_occur[n_occur$Freq > 1,]
-# Which M2FAMNUMs occurred more than once.
-#dfLsW$M2ID[dfLsW$M2FAMNUM %in% n_occur$Var1[n_occur$Freq > 1]]
-# Count up the number of subjects with each repeated family id, each subject's value for sibs column is how many people have same family id (including themself)
-dfLsW$sibs = 1
-for (family in n_occur$Var1[n_occur$Freq > 1] ) {
-  #print(family)
-  numsibs = n_occur$Freq[n_occur$Var1 == family ]
-  dfLsW$sibs[dfLsW$M2FAMNUM == family] = numsibs
-}
-length(dfLsW$M2ID[dfLsW$SAMPLMAJ == '(03) TWIN' & dfLsW$sibs == 2 & dfLsW$ZYGCAT == 'MONOZYGOTIC']) # 128
-length(dfLsW$M2ID[dfLsW$SAMPLMAJ == '(03) TWIN' & dfLsW$sibs == 2 & dfLsW$ZYGCAT == 'DIZYGOTIC - SAME SEX']) # 56
-length(dfLsW$M2ID[dfLsW$SAMPLMAJ == '(03) TWIN' & dfLsW$sibs == 2 & dfLsW$ZYGCAT == 'DIZYGOTIC - DIFFERENT SEX']) # 46
-length(dfLsW$M2ID[dfLsW$SAMPLMAJ == '(03) TWIN' & dfLsW$sibs == 2 & dfLsW$ZYGCAT == 'UNABLE TO DETERMING ZYGOSITY']) # 2
-#View(dfLsW[dfLsW$SAMPLMAJ == '(03) TWIN' & dfLsW$sibs == 4,]) # fam of 4 is DZ same sex 
-# 1 family with 2 twin pairs, 1 family with 3 siblings
-#View(dfLsW[dfLsW$SAMPLMAJ != '(03) TWIN',])
-# 3 siblings
-length(dfLsW$M2ID[dfLsW$SAMPLMAJ != '(03) TWIN' & dfLsW$sibs == 3]) # N = 3 (1 family)
-length(dfLsW$M2ID[dfLsW$SAMPLMAJ != '(03) TWIN' & dfLsW$sibs == 2]) # N = 8 (4 families)
-varDescribe(unique(dfLsW$M2FAMNUM[dfLsW$SAMPLMAJ == '(02) SIBLING'])) # 5 unique family ids that are siblings, 1 pair of siblings 
-```
-
-
-## Prep variables in long format df
-- Have age for everyone (so don't need to recenter well-being variable based on who has age)
-- Stress is centered within cluster (centered around each subject's mean)
-- Thus: for each analysis, just need to re-center age based on who has that well-being variable (this is probably overkill, the mean changes very little, but it's done)
 
 ### Cluster mean center
 ```{r cluster_mean_center}
@@ -132,16 +159,13 @@ dfLs$COPE_denial_C = dfLs$COPE_denial - mean(dfLs$COPE_denial, na.rm=T)
 dfLs$pwb2_C_d10 = dfLs$pwb2_C/10.000000
 dfLs$P4_CESD_C_d10 = dfLs$P4_CESD_C/10.000000
 dfLs$P4_STAItrait_C_d10 = dfLs$P4_STAItrait_C/10.000000
-# PWB subscales
-dfLs$autonomy2_C = dfLs$autonomy2 - mean(dfLs$autonomy2, na.rm=T)
-dfLs$envMast2_C = dfLs$envMast2 - mean(dfLs$envMast2, na.rm=T)
-dfLs$persGrow2_C = dfLs$persGrow2 - mean(dfLs$persGrow2, na.rm=T)
-dfLs$posRela2_C = dfLs$posRela2 - mean(dfLs$posRela2, na.rm=T)
-dfLs$purpLife2_C = dfLs$purpLife2 - mean(dfLs$purpLife2, na.rm=T)
-dfLs$selfAcce2_C = dfLs$selfAcce2 - mean(dfLs$selfAcce2, na.rm=T)
+
 # Inflammatory
 dfLs$IL6_C = dfLs$IL6 - mean(dfLs$IL6, na.rm=T)
 dfLs$CRP_C = dfLs$CRP - mean(dfLs$CRP, na.rm=T)
+```
+
+```{r}
 # Wide data frame
 dfLsW$P4_age_C = dfLsW$P4_age - mean(dfLsW$P4_age, na.rm=T)
 # Self reports
@@ -159,11 +183,6 @@ dfLsW$persGrow2_C = dfLsW$persGrow2 - mean(dfLsW$persGrow2, na.rm=T)
 dfLsW$posRela2_C = dfLsW$posRela2 - mean(dfLsW$posRela2, na.rm=T)
 dfLsW$purpLife2_C = dfLsW$purpLife2 - mean(dfLsW$purpLife2, na.rm=T)
 dfLsW$selfAcce2_C = dfLsW$selfAcce2 - mean(dfLsW$selfAcce2, na.rm=T)
-```
-
-### Recode dichotomous
-```{r recode_dichotomous}
-dfLs$gender_C = varRecode(dfLs$gender, c('(1) MALE', '(2) FEMALE'), c(-.5,.5))
 ```
 
 ### Log transform inflammatory markers for normal distribution 
