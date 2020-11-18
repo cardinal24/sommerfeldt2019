@@ -237,7 +237,7 @@ hist(f.Ldf$CRP_T)
 ```{r coherence_pwb}
 
 # Run the test 
-
+library("lmerTest")
 lmerM.pwb <- lmer(hr_value ~ stress_CMC * pwb2_MC_d10 + P4_age_MC*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM.x), data = f.Ldf)
 a.pwb <- anova(lmerM.pwb, type=3, test="F")
 a.pwb
@@ -249,21 +249,26 @@ summary(lmerM.pwb)
 ### Depression
 ```{r coherence_depression}
 
-# Run the test
-lmerM = lmer(hr ~ stress_CMC * P4_CESD_C_d10 + P4_age_C*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM), data=dfLs)
-a = Anova(lmerM, type=3, test="F")
-a
-summary(lmerM)
-   
+#run the test
+lmerM.dep <- lmer(hr_value ~ stress_CMC *P4_CESD_MC_d10 + P4_age_MC*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM.x), data = f.Ldf)
+a.dep<- anova(lmerM.pwb, type=3, test="F")
+a.dep
+summary(lmerM.dep)
+
+ 
 ```
 
 ### Anxiety
 ```{r coherence_anxiety}
+
 # Run the test
-lmerM = lmer(hr ~ stress_CMC * P4_STAItrait_C_d10 + P4_age_C*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM), data=dfLs)
-a = Anova(lmerM, type=3, test="F")
-a
-summary(lmerM)
+
+lmerM.anx <- lmer(hr_value ~ stress_CMC *P4_STAItrait_MC_d10 + P4_age_MC*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM.x), data = f.Ldf)
+a.anx<- anova(lmerM.anx, type=3, test="F")
+a.anx
+summary(lmerM.anx)
+
+
    
 ```
 
@@ -271,32 +276,34 @@ summary(lmerM)
 ```{r coherence_IL6}
 
 # Run the test
-lmerM = lmer(hr ~ stress_CMC * IL6_T_C + P4_age_C*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM), data=dfLs)
-a = Anova(lmerM, type=3, test="F")
-a
-summary(lmerM)
-  
+lmerM.IL6<- lmer(hr_value ~ stress_CMC *IL6_T_MC + P4_age_MC*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM.x), data = f.Ldf)
+a.IL6<- anova(lmerM.IL6, type=3, test="F")
+a.IL6
+summary(lmerM.IL6)
+
+
 ```
 
 ### CRP
 ```{r coherence_CRP}
+#Run the test
+lmerM.IL6<- lmer(hr_value ~ stress_CMC *IL6_T_MC + P4_age_MC*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM.x), data = f.Ldf)
+a.IL6<- anova(lmerM.IL6, type=3, test="F")
+a.IL6
+summary(lmerM.IL6)
 
-# Run the test
-lmerM = lmer(hr ~ stress_CMC * CRP_T_C + P4_age_C*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM), data=dfLs)
-a = Anova(lmerM, type=3, test="F")
-a
-summary(lmerM)
+
   
 ```
 
 ### Denial
 ```{r denial}
 
-# Run the test 
-lmerM = lmer(hr ~ stress_CMC * COPE_denial_C + P4_age_C*stress_CMC + (1+ stress_CMC|M2ID) + (1|M2FAMNUM), data=dfLs)
-a = Anova(lmerM, type=3, test="F")
-a
-summary(lmerM)
+#Run the test
+lmerM.den<- lmer(hr_value ~ stress_CMC *COPE_denial_MC+ P4_age_MC*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM.x), data = f.Ldf)
+a.den<- anova(lmerM.den, type=3, test="F")
+a.den
+summary(lmerM.den)
  
 ```
 
