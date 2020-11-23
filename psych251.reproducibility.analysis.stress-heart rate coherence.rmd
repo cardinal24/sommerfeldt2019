@@ -69,6 +69,7 @@ summarize(df.shr)
 
 
 ```
+
 ```{r}
  
 ```
@@ -323,7 +324,7 @@ p.adjust(p, method= 'holm')
 
 Facet-wrapped histograms of stress and heart rate at each phase of stress induction
 
-```{r stress_by_phase_histograms, fig.width=8, fig.height=3, comment='#'}
+```{r stress_by_phase_histograms}
 ylimits = c(0, 610)
 stressHist=ggplot()+
 geom_histogram(data=f.Ldf, aes(stress_value), fill="green", binwidth=1, color="black") +
@@ -335,7 +336,7 @@ theme_bw(base_size=18)
 stressHist
 ```
 
-```{r hr_by_phase_histograms, fig.width=8, fig.height=3, comment='#'}
+```{r hr_by_phase_histograms}
 xlimits = c(30,150)
 ylimits = c(0, 240)
 hrHist=ggplot()+
