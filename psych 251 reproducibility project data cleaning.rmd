@@ -103,7 +103,7 @@ length(dfPZ$M2ID) #matches codebook for the M1 data 2760
 
 ```{r}
 
-## MIDUS2 version PWB (7-items per sub-scale) --have to wipe and reinstall librarys from begininning at times due to changes in libraries and functinos causnig issues with old, will try to continue without
+## MIDUS2 version PWB (7-items per sub-scale) -
 
 PWB2O = c('B1SPWBA2', 'B1SPWBE2', 'B1SPWBG2', 'B1SPWBR2', 'B1SPWBU2', 'B1SPWBS2') # old names
 PWB2 = c('autonomy2', 'envMast2', 'persGrow2', 'posRela2', 'purpLife2', 'selfAcce2') # new names
@@ -111,9 +111,9 @@ PWB2 = c('autonomy2', 'envMast2', 'persGrow2', 'posRela2', 'purpLife2', 'selfAcc
 COPEO = c('B1SEMCOP', 'B1SPRCOP', 'B1SDENIA', 'B1SVENT', 'B1SDISEN', 'B1SREINT', 'B1SACTIV', 'B1SPLAN') # old names
 COPE = c('COPEem', 'COPEprob', 'COPE_denial', 'COPE_vent', 'COPE_disengage', 'COPE_posReGrow', 'COPE_active', 'COPE_plan') # new names
 
-## change 98s to NA - not sure why changed the 98s to NA either
-dfP1[PWB2O][dfP1[PWB2O] == 98] = NA
-dfP1[COPEO][dfP1[COPEO] == 98] = NA
+## change 98s to NA - not sure why changed the 98s to NA either - note this time around idid not change 98s of cope to NA
+#dfP1[PWB2O][dfP1[PWB2O] == 98] = NA
+#dfP1[COPEO][dfP1[COPEO] == 98] = NA
 
 # Look-see
 varDescribe(dfP1[PWB2O])
@@ -618,7 +618,7 @@ varDescribe(dfP1_P1M)
 
 #subset data frame - taking zygosity variables - # Zygosity data from Midus I 
 # Downloaded from colectica with variables: M2ID, ZYGCAT, TOT_SIBS
-dfPZ2 <- dfPZ %>% select(M2ID, ZYGCAT, TOT_SIBS)
+dfPZ2 <- dfPZ %>% dplyr::select(M2ID, ZYGCAT, TOT_SIBS)
 
 #####################
 ####  Merge data #### 

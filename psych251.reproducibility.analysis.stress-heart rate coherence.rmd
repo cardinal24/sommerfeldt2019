@@ -6,7 +6,9 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
+
 knitr::opts_chunk$set(echo = TRUE)
+
 ```
 
 
@@ -29,7 +31,7 @@ setwd("~/R Mac working folder")
 #load cleaned and merged data so farfrom this step and work from here - should have all the proper variables and merged diff data sets by M2ID
 #should look wide and long data?
 
-psych_251_repro_df <- read_csv("R Mac working folder/sommerfeldt2019/psych.251.repro.df.csv")
+#psych_251_repro_df <- read_csv("R Mac working folder/sommerfeldt2019/psych.251.repro.df.csv")
 
 df <- psych_251_repro_df
 
@@ -50,10 +52,10 @@ df %>% count(stress1)
 #make stress and heart rate correlations
 
 #drop stress - in paper mentioned only without five complete data points for sr stress but should also befor hr
-df.s <- df %>% group_by(M2ID) %>% drop_na(stress1, stress2, stress3, stress4, stress5) %>% select(-stress6) 
+df.s <- df %>% dplyr::group_by(M2ID) %>% drop_na(stress1, stress2, stress3, stress4, stress5) %>% dplyr::select(-stress6) 
 
 #drophr framework but will keep HR in as isnt explicitly mentioned also some data spots arent good due to instrument rill return
-df.shr <- df.s %>% group_by(M2ID) %>% drop_na(hr1, hr2, hr3, hr4, hr5) %>% select(-hr6)
+df.shr <- df.s %>% group_by(M2ID) %>% drop_na(hr1, hr2, hr3, hr4, hr5) %>% dplyr::select(-hr6)
 
 #looks like 967 observations less than intended
 summary(df.shr$IL6)
@@ -78,18 +80,18 @@ summarize(df.shr)
 ```{r rename}
 
 #rename var to separate easier
- df.shr1 <- rename(df.shr, stress_1 = stress1)
+ df.shr1 <- dplyr::rename(df.shr, stress_1 = stress1)
  
-df.shr2 <- rename(df.shr1, stress_2 = stress2)
-df.shr3 <- rename(df.shr2, stress_3 = stress3)  
-df.shr4 <- rename(df.shr3, stress_4 = stress4)  
-df.shr5 <- rename(df.shr4, stress_5 = stress5)  
+df.shr2 <- dplyr::rename(df.shr1, stress_2 = stress2)
+df.shr3 <- dplyr::rename(df.shr2, stress_3 = stress3)  
+df.shr4 <- dplyr::rename(df.shr3, stress_4 = stress4)  
+df.shr5 <- dplyr::rename(df.shr4, stress_5 = stress5)  
 
-df.shr6 <- rename(df.shr5, hr_1 = hr1) 
-df.shr7 <- rename(df.shr6, hr_2 = hr2) 
-df.shr8 <- rename(df.shr7, hr_3 = hr3) 
-df.shr9 <- rename(df.shr8, hr_4 = hr4) 
-df.shr10 <- rename(df.shr9, hr_5 = hr5) 
+df.shr6 <- dplyr::rename(df.shr5, hr_1 = hr1) 
+df.shr7 <- dplyr::rename(df.shr6, hr_2 = hr2) 
+df.shr8 <- dplyr::rename(df.shr7, hr_3 = hr3) 
+df.shr9 <- dplyr::rename(df.shr8, hr_4 = hr4) 
+df.shr10 <- dplyr::rename(df.shr9, hr_5 = hr5) 
 ```
 
 ```{r pivot longer}
@@ -112,11 +114,11 @@ m.LDF <- merge(df.Ls, df.Lhr,
                    all.x = TRUE, all.y = FALSE)
 
 #select key variables needed for long dataframe
-f.Ldf <- m.LDF %>% select(M2ID, timepoint, stress_value, hr_value, pwb2.x, COPE_denial.x, IL6.x, CRP.x, P4_CESD.x, P4_STAItrait.x, M2FAMNUM.x, P4_age.x)
+f.Ldf <- m.LDF %>% dplyr::select(M2ID, timepoint, stress_value, hr_value, pwb2.x, COPE_denial.x, IL6.x, CRP.x, P4_CESD.x, P4_STAItrait.x, M2FAMNUM.x, P4_age.x)
 
 #key variables for wide df
 
-f.Wdf <- wDF %>% select(M2ID, pwb2, COPE_denial, IL6, CRP, P4_CESD, P4_STAItrait, M2FAMNUM, stress_1, stress_2, stress_3, stress_4, stress_5, hr_1, hr_2, hr_3, hr_4, hr_5, P4_age)
+f.Wdf <- wDF %>% dplyr::select(M2ID, pwb2, COPE_denial, IL6, CRP, P4_CESD, P4_STAItrait, M2FAMNUM, stress_1, stress_2, stress_3, stress_4, stress_5, hr_1, hr_2, hr_3, hr_4, hr_5, P4_age)
 ```
 
 #See Prep_Coherence_MIDUSII.R for correlation computation. There, each subject’s set of heart rate and stress measures are subset to their #own data frame and a correlation is computed. The resulting within-subject (i.e., single-subject) r’s compose a new variable in the main #dataframe. ### Center correlations variable
