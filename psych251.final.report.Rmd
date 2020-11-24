@@ -1,9 +1,31 @@
 ---
-title: "Psych251.final.report" "Reproducibility Report for Individual Differences in the Association Between Subjective Stress and Heart Rate Are Related to Psychological and Physical Well-Being by Sommerfeldt et al., (2019, Psychological Science)"
+title: "Psych251.final.report-Reproducibility Report for Individual Differences in the Association Between Subjective Stress and Heart Rate Are Related to Psychological and Physical Well-Being by Sommerfeldt et al., (2019, Psychological Science)"
 author: "Kris Evans"
 date: "11/20/2020"
 output: html_document
 ---
+	
+```{r include=F}
+### Data Preparation included cleaning, and transformations, see cleaning .rmd for details
+#### Load Relevant Libraries and Functions
+#### Import data
+#### Data exclusion / filtering - all participants who did did nothave five measures of stress and hr are in this data - kept those who only had stroop/math as their tp1 and 2 tasks dropped others, droppped NAs at hradn stress data aswellneeded all 5
+#### Prepare data for analysis - create columns etc.
+
+library(tidyverse)
+library(knitr)
+library(sjPlot)
+library(lmerTest)
+library(psych)
+
+#load wide and long data sets
+#psych_251_repro_f_Ldf_analysis <- read_csv("sommerfeldt2019/psych.251.repro.f.Ldf.analysis.csv")
+#psych_251_repro_w_Ldf_analysis <- read_csv("sommerfeldt2019/psych.251.repro.w.Ldf.analysis.csv")
+
+wDF <- psych_251_repro_w_Ldf_analysis
+f.Ldf <- psych_251_repro_f_Ldf_analysis
+```
+
 
 ## Introduction
 
@@ -54,37 +76,46 @@ For the LMEM approach, I will regress heart rate on self-reported stress (center
 This model was represented in R as follows:
 lmer(heartRate stressClusterMeanCentered ∼ * wellbeingCentered + StressClusterMeanCentered * ageCentered(1 + stressClusterMeanCentered | subject) + (1 + d | subject) + () = 1 | family data dfLong )
 
-Denial coping is at the between participant level
- 
+
 
 ### Description of the steps required to reproduce the results
 
 Retrieve, clean, analyze, interpret, and visualize key data, models and tables.
 
 ### Differences from original study
-
-
+final N for analyses is 967 which is lower than the paper reported. I likely eliminated some scores and people in cleaning.
+- i removed all participants with missing scores in HR and stress. Also did not change the PWB scores from 98=0.
+xxx - addendum for any other methods changes
 ## Results
 
 
+```{r}
+#basic summary stats of data
+describe(wDF)
+describe(f.Ldf)
 
-Reproduction results - N/A
+
+
+```
+xxxx
+
+```{r}
+#summary of the mixed lmer models 
+
+
+tab_model(lmerM.pwb, lmerM.den, lmerM.dep,lmerM.CRP,lmerM.IL6, lmerM.anx) 
+```
+
+Reproduction results - The results supportthe general conclusion of the paper
 
 ### Data preparation
 
 Data preparation following the analysis plan.
-	
-```{r include=F}
-### Data Preparation
-#### Load Relevant Libraries and Functions
-#### Import data
-#### Data exclusion / filtering
-#### Prepare data for analysis - create columns etc.
-```
+
 
 ### Key analysis
 
-The statistical effect of stress on heart rate was found to be moderated by PWB, b = 0.050, F(1, 822.8) = 26.70, p < .0001; participants with higher stress–heart rate coherence also reported higher psychological well- being. The opposite was true for depressive symptoms, b = −0.249, F(1, 783.7) = 36.77, p < .0001, and trait anxiety, b = −0.211, F(1, 769.4) = 32.49, p < .0001; indi- viduals with higher stress–heart rate coherence reported fewer depressive symptoms and had lower trait anxiety. 
+The statistical effect of stress on heart rate was found to be moderated by PWB, b = 0.050, F(1, 822.8) = 26.70, p < .0001; participants with higher stress–heart rate coherence also reported higher psychological well- being. The opposite was true for depressive symptoms, b = −0.249, F(1, 783.7) = 36.77, p < .0001, and trait anxiety, b = −0.211, F(1, 769.4) = 32.49, p < .0001; individuals with higher stress–heart rate coherence reported fewer depressive symptoms and had lower trait anxiety. 
 
 For physical well- being, the statistical effect of stress on heart rate was found to be significantly moderated by IL-6 and CRP; participants with higher stress–heart rate coherence also had lower IL-6, b = −0.145, F(1, 762.3) = 22.20, p < .0001, and lower CRP, b = −0.175, F(1, 827.2) = 7.16, p = .008.
 
@@ -92,9 +123,12 @@ I also investigated whether stress–heart rate coherence was associated with us
 
 *Side-by-side graph with original graph is ideal here*
 
+
+
+
 ###Exploratory analyses
 
-Any follow-up analyses desired (not required).  
+None 
 
 ## Discussion
 
@@ -102,6 +136,128 @@ Any follow-up analyses desired (not required).
 
 Open the discussion section with a paragraph summarizing the primary result from the key analysis and assess whether you successfully reproduced it, partially reproduced it, or failed to reproduce it.  
 
-### Commentary
+The primary result is that we do see a significant relationship between heart rate,stress, and key variables measures psychophysiological health and well-being. This was a successful reproduction in that I was ableto clean, transform, and analyze the data effectively and get similar results using thesame methods as the author.
 
+xxx
+
+### Commentary
+xxx
 Add open-ended commentary (if any) reflecting (a) insights from follow-up exploratory analysis of the dataset, (b) assessment of the meaning of the successful or unsuccessful reproducibility attempt - e.g., for a failure to reproduce the original findings, are the differences between original and present analyses ones that definitely, plausibly, or are unlikely to have been moderators of the result, and (c) discussion of any objections or challenges raised by the current and original authors about the reproducibility attempt (if you contacted them).  None of these need to be long.
+
+
+
+# TESTS
+
+## Stress-heart rate coherence associations
+
+### PWB
+```{r coherence_pwb}
+
+# Run the Lmer test 
+lmerM.pwb <- lmerTest::lmer(hr_value ~ stress_CMC * pwb2_MC_d10 + P4_age_MC*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM.x), data = f.Ldf)
+a.pwb <- anova(lmerM.pwb, type=3, test="F")
+a.pwb
+ 
+pwb.sum <- summary(lmerM.pwb)
+
+
+tab_model(lmerM.pwb)
+
+```
+
+### Depression
+```{r coherence_depression}
+
+#run the test
+lmerM.dep <- lmerTest::lmer(hr_value ~ stress_CMC *P4_CESD_MC_d10 + P4_age_MC*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM.x), data = f.Ldf)
+a.dep<- anova(lmerM.dep, type=3, test="F")
+a.dep
+summary(lmerM.dep)
+
+ 
+```
+
+### Anxiety
+```{r coherence_anxiety}
+
+# Run the test
+
+lmerM.anx <- lmerTest::lmer(hr_value ~ stress_CMC *P4_STAItrait_MC_d10 + P4_age_MC*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM.x), data = f.Ldf)
+a.anx<- anova(lmerM.anx, type=3, test="F")
+a.anx
+summary(lmerM.anx)
+
+
+   
+```
+
+### IL6
+```{r coherence_IL6}
+
+# Run the test
+lmerM.IL6<- lmerTest::lmer(hr_value ~ stress_CMC *IL6_T_MC + P4_age_MC*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM.x), data = f.Ldf)
+a.IL6<- anova(lmerM.IL6, type=3, test="F")
+a.IL6
+summary(lmerM.IL6)
+
+
+```
+
+### CRP
+```{r coherence_CRP}
+#Run the test
+lmerM.CRP<- lmerTest::lmer(hr_value ~ stress_CMC *CRP_MC + P4_age_MC*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM.x), data = f.Ldf)
+a.CRP <- anova(lmerM.CRP, type=3, test="F")
+a.CRP
+summary(lmerM.CRP)
+
+
+  
+```
+
+### Denial
+```{r denial}
+
+#Run the test
+lmerM.den<- lmerTest::lmer(hr_value ~ stress_CMC *COPE_denial_MC+ P4_age_MC*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM.x), data = f.Ldf)
+
+a.den<- anova(lmerM.den, type=3, test="F")
+a.den
+
+summary(lmerM.den)
+ 
+```
+
+
+## FIGURE 1: Stress and heart rate by phase histograms
+
+```{r stress_by_phase_histograms}
+ylimits = c(0, 610)
+stressHist=ggplot()+
+geom_histogram(data=f.Ldf, aes(stress_value), fill="green", binwidth=1, color="black") +
+facet_wrap(~timepoint, ncol=5) +
+labs(x="Self-reported stress", y="Number of subjects") +
+ylim(ylimits)+
+scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8,9,10) )+
+theme_bw(base_size=18)
+stressHist
+```
+
+#original figure
+
+
+```{r hr_by_phase_histograms}
+xlimits = c(30,150)
+ylimits = c(0, 240)
+hrHist=ggplot()+
+geom_histogram(data=f.Ldf, aes(hr_value), fill="red", binwidth=6, color="black") +
+facet_wrap(~timepoint, ncol=5) +
+labs(x="Heart rate", y="Number of subjects") +
+ylim(ylimits)+
+xlim(xlimits)+
+geom_vline(xintercept=75, size=.5, color="blue")+
+theme_bw(base_size=18)
+hrHist
+```
+
+
