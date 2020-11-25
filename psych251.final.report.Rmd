@@ -19,11 +19,13 @@ library(lmerTest)
 library(psych)
 
 #load wide and long data sets
-#psych_251_repro_f_Ldf_analysis <- read_csv("sommerfeldt2019/psych.251.repro.f.Ldf.analysis.csv")
-#psych_251_repro_w_Ldf_analysis <- read_csv("sommerfeldt2019/psych.251.repro.w.Ldf.analysis.csv")
 
-wDF <- psych_251_repro_w_Ldf_analysis
-f.Ldf <- psych_251_repro_f_Ldf_analysis
+##psych_251_report_cleaned_wide <- read_csv("R Mac working folder/sommerfeldt2019/psych.251.report.cleaned.wide.csv")
+#psych_251_report_cleaned_long <- read_csv("R Mac working folder/sommerfeldt2019/psych.251.report.cleaned.long.csv")
+
+
+wDF <- psych_251_report_cleaned_wide
+f.Ldf <- psych_251_report_cleaned_long
 ```
 
 
@@ -52,7 +54,8 @@ I foresee some challenges related to data analysis and interpretation based on a
 
 ### Links
 
-Project repository (https://github.com/cardinal24/writeup.git): 
+Project repository (https://github.com/cardinal24/writeup.git):
+https://github.com/cardinal24/sommerfeldt2019
 
 Original paper (https://github.com/cardinal24/sommerfeldt2019.git): 
 
@@ -67,9 +70,9 @@ Participants were informed at the beginning of the session that, periodically, t
 
 One can estimate a linear mixed-effects model (LMEM) to examine whether the (statistical) effect of one of the Level 1 variables (e.g., subjective stress) on the other Level 1 variable (e.g., heart rate) is moderated by the individual-differences variable. If, for example, the effect of subjective stress on heart rate is stronger for participants high in psychological well-being, then
 
-Age was included as a covariate because of the broad age range of the sample, extending from early to late adulthood and because older participants had lower stress–heart rate coherence, b = −0.008, F(1, 843.0) = 7.754, p = .005. Gender was not associated with stress–heart rate coherence, b = 0.051, F(1, 850.0) = 0.560, p = .455, and so was not included as a covariate in the analyses. We fitted a separate model for each of the five well-being indicators of interest and denial coping (six total tests). The Anova() function in the car package (Version 3.0.0; Fox & Weisberg, 2011) provided esti- mates of F, error df (via Kenward-Roger approximation), and p. Multiple comparisons of the six different tests were corrected using the Holm-Bonferroni method the within-participants association is positively related to psychological well-being
+Age was included as a covariate because of the broad age range of the sample, extending from early to late adulthood and because older participants had lower stress–heart rate coherence, b = −0.008, F(1, 843.0) = 7.754, p = .005. Gender was not associated with stress–heart rate coherence, b = 0.051, F(1, 850.0) = 0.560, p = .455, and so was not included as a covariate in the analyses. We fitted a separate model for each of the five well-being indicators of interest and denial coping (six total tests). The Anova() function in the car package (Version 3.0.0; Fox & Weisberg, 2011) provided estimates of F, error df (via Kenward-Roger approximation), and p. Multiple comparisons of the six different tests were corrected using the Holm-Bonferroni method the within-participants association is positively related to psychological well-being
 
-Stroop color-word task. Participants completed a mod- i fied Stroop color-word task (Stroop, 1935). One of four color-name words was presented in a font color that was either congruent or incongruent with the word itself. The colored color-name stimulus appeared on screen, and participants pressed one of four keys on a keypad cor- responding to the color of the letters in the word, not the color name. The rate of stimuli was modified according to participant performance to roughly standardize the degree of stressfulness. This standardization was set so that
+Stroop color-word task. Participants completed a modified Stroop color-word task (Stroop, 1935). One of four color-name words was presented in a font color that was either congruent or incongruent with the word itself. The colored color-name stimulus appeared on screen, and participants pressed one of four keys on a keypad cor- responding to the color of the letters in the word, not the color name. The rate of stimuli was modified according to participant performance to roughly standardize the degree of stressfulness. This standardization was set so that
 
 For the LMEM approach, I will regress heart rate on self-reported stress (centered around each participant’s own mean), the well-being indicator under consideration (mean centered; e.g., PWB), and their interaction, adjusting for age, the interaction between self-reported stress and age, and nonindependence due to participants and families (Brauer & Curtin, 2018). Our model thus includes six fixed effects: self-reported stress (Level 1), the well-being indicator of interest (Level 2), their interaction, age (Level 2), the interaction of self- reported stress and age, and the intercept. The model includes a by-participant random intercept, a by-participant random slope for stress, and a by-family random intercept. The two by-participant random effects were allowed to correlate.
 
@@ -83,37 +86,53 @@ lmer(heartRate stressClusterMeanCentered ∼ * wellbeingCentered + StressCluster
 Retrieve, clean, analyze, interpret, and visualize key data, models and tables.
 
 ### Differences from original study
-final N for analyses is 967 which is lower than the paper reported. I likely eliminated some scores and people in cleaning.
-- i removed all participants with missing scores in HR and stress. Also did not change the PWB scores from 98=0.
-xxx - addendum for any other methods changes
-## Results
 
+For this reproduction, the final N for analyses was 967. This is lower than original paper (n=1065) reported and is likely due to differing parameters of exclusion resulting in a difference of 98 participants. I removed participants that did not have five measures of heart rate and self-reported stress. Additionally, I did not change scores on the PWB measure to NA if they equaled 98 which was not reported in the paper but shown in the original paper script. I likely eliminated more participants in cleaning and transformations which may have impacted variables differently. 
+
+
+
+## Results
+In general, the results support the key hypotheses in the paper. Stress-heart rate coherence is significantly associated with measures of health and well-being. However, although trending the same way this was not significant for C-reactive protein. Below I report estimates, standard errors, degrees of freedom, F and P values.
+
+The statistical effect of stress on heart rate was found to be moderated by PWB, b = 0.04, SE =.011, F(1, 532) = 13.47, p < .0001; participants with higher stress–heart rate coherence also reported higher psychological well- being. The opposite was true for depressive symptoms, b = −0.23, SE=.05, F(1, 500) = 20.63, p < .0001, and trait anxiety, b = −0.18, SE=.04 F(1, 488) = 18.45, p < .0001; individuals with higher stress–heart rate coherence reported fewer depressive symptoms and had lower trait anxiety. 
+
+For physical well- being, the statistical effect of stress on heart rate was found to be significantly moderated by IL-6 and CRP; participants with higher stress–heart rate coherence also had lower IL-6, b = −0.131, SE=.037, F(1, 485) = 12.62, p < .0001, and lower CRP, b = −0.147, SE=.077 F(1, 522) = 3.64, p = .057. (trending-almost significant)
+
+I also investigated whether stress–heart rate coherence was associated with use of denial as a coping strategy.The statistical effect of stress on heart rate was found to be moderated by denial; higher stress–heart rate coherence was associated with less tendency toward the use of denial as a coping strategy, b = −0.069, SE=.018 F(1, 536) = 13.79, p < .0001
 
 ```{r}
 #basic summary stats of data
 describe(wDF)
 describe(f.Ldf)
 
+#key variables to look at summary stats
+pwb.summary <- describe(wDF$pwb2) 
+depression.summary <- describe(wDF$P4_CESD)
+anxiety.summary <- describe(wDF$P4_STAItrait)
+IL6.summary <- describe(wDF$IL6_T) #different means and SDs than original paper for IL6 and CRP
+CRP.summary <- describe(wDF$CRP_T)
+denial.summary <- describe(wDF$COPE_denial)
 
+kable(denial.summary)
 
 ```
-xxxx
+summary of the mixed lmer models testing the main hypotheses, that stress-heart rate coherence is associated with improved measures of psychophysiological health and well-being
 
-```{r}
-#summary of the mixed lmer models 
+```{r Linear-Mixed Model Results}
+#summary of the mixed lmer models testing the main hypotheses, that stress-heart rate coherence is associated with improved measures of psychophysiological health and well-being
 
 
-tab_model(lmerM.pwb, lmerM.den, lmerM.dep,lmerM.CRP,lmerM.IL6, lmerM.anx) 
+tab_model(lmerM.pwb, lmerM.dep, lmerM.anx, lmerM.IL6, lmerM.CRP, lmerM.den) 
 ```
 
-Reproduction results - The results supportthe general conclusion of the paper
+Reproduction results - The results support the general conclusion of the paper
 
 ### Data preparation
 
-Data preparation following the analysis plan.
+Data preparation included thorough investigation of variables, cleaning, wrangling, and transforming (see cleaning.rmd for details). Data here are cleaned with scores of key variables. Participants were excluded if they did not complete stroop or MATH task for stressor task or if we did not have 5 measurements of heart rate and self-reported stress. 
 
 
-### Key analysis
+### Key analysis - Origiinal test and results
 
 The statistical effect of stress on heart rate was found to be moderated by PWB, b = 0.050, F(1, 822.8) = 26.70, p < .0001; participants with higher stress–heart rate coherence also reported higher psychological well- being. The opposite was true for depressive symptoms, b = −0.249, F(1, 783.7) = 36.77, p < .0001, and trait anxiety, b = −0.211, F(1, 769.4) = 32.49, p < .0001; individuals with higher stress–heart rate coherence reported fewer depressive symptoms and had lower trait anxiety. 
 
@@ -122,28 +141,24 @@ For physical well- being, the statistical effect of stress on heart rate was fou
 I also investigated whether stress–heart rate coherence was associated with use of denial as a coping strategy.The statistical effect of stress on heart rate was found to be moderated by denial; higher stress–heart rate coherence was associated with less tendency toward the use of denial as a coping strategy, b = −0.069, F(1, 853.3) = 20.69, p < .0001
 
 *Side-by-side graph with original graph is ideal here*
-
+Original author did not graph but listed the above numbers in a table.
 
 
 
 ###Exploratory analyses
 
-None 
+None to report.
 
 ## Discussion
+Primarily, the results indicate that there is a significant relationship between heart rate and the interaction of stress and measures of health and well being. Specifically, individuals with higher stress-heart rate coherence also report higher psychological well being, fewer depressive symptoms, lower trait anxiety, IL-6 and are less likely to use denial as a coping strategy. Participants with higher stress-heart-rate coherence had lower CRP but this was non significant but trending in the same direction as the original paper.
+
 
 ### Summary of Reproduction Attempt
 
-Open the discussion section with a paragraph summarizing the primary result from the key analysis and assess whether you successfully reproduced it, partially reproduced it, or failed to reproduce it.  
-
-The primary result is that we do see a significant relationship between heart rate,stress, and key variables measures psychophysiological health and well-being. This was a successful reproduction in that I was ableto clean, transform, and analyze the data effectively and get similar results using thesame methods as the author.
-
-xxx
+This was a successful reproduction for two reasons. 1)I was able to retrieve, prepare and analyze the data set using similar methodology, and 2) this resulted in similar results which can be deemed a successful reproduction. I reproduced the two main figures of the paper along with the models that reflect the main hypotheses. while the figures differ slightly, the overall relationships are significantly trending in the same direction and models produce similar estimates, F, and P values. Although we did differ on degrees of freedom listed in the models this is likely due to the population size and difference in cleaning/elimination methods that may have resulted in different population size. The summary statistics were similar dsepite a smaller sample, except for the for Interleukin-6 and C-reactive protein.
 
 ### Commentary
-xxx
-Add open-ended commentary (if any) reflecting (a) insights from follow-up exploratory analysis of the dataset, (b) assessment of the meaning of the successful or unsuccessful reproducibility attempt - e.g., for a failure to reproduce the original findings, are the differences between original and present analyses ones that definitely, plausibly, or are unlikely to have been moderators of the result, and (c) discussion of any objections or challenges raised by the current and original authors about the reproducibility attempt (if you contacted them).  None of these need to be long.
-
+Overall, this author did an excellent job providing insight into their methods and approach and made this mostly available in an online repository. This greatly supported my reproductive endeavor and should be a critical part of open science.I only had one objection to a scoring method with the psychological well-being variable but this didn't result in meaningful differences. While the authors provided their code, there were no data to work from so I had the chance to practice retrieving and digging through a massive data set with 10k+ observers and variables. This process made me much more appreciative of providing clean data sets when choosing open science methods. I also walked away with a deeper appreciation of tidy cleaning methods and the importance of using the code, names, comments, and packages all together optimally which will be a learning process. When this is done well, it makes it incredibly easy for someone to understand thinking processes and reproduce work. I also gained better appreciation of the need for understanding how to clean, tarnsform and reshape data most effectively and how this is the bread and butter of analyses.
 
 
 # TESTS
@@ -206,7 +221,7 @@ summary(lmerM.IL6)
 ### CRP
 ```{r coherence_CRP}
 #Run the test
-lmerM.CRP<- lmerTest::lmer(hr_value ~ stress_CMC *CRP_MC + P4_age_MC*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM.x), data = f.Ldf)
+lmerM.CRP<- lmerTest::lmer(hr_value ~ stress_CMC *CRP_T_MC + P4_age_MC*stress_CMC + (1 + stress_CMC|M2ID) + (1|M2FAMNUM.x), data = f.Ldf)
 a.CRP <- anova(lmerM.CRP, type=3, test="F")
 a.CRP
 summary(lmerM.CRP)
